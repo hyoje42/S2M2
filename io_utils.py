@@ -54,7 +54,8 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
-    return parser.parse_args('--method rotation'.split())
+    # return parser.parse_args('--method rotation'.split())
+    return parser.parse_args()
 
 
 def get_assigned_file(checkpoint_dir,num):

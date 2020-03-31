@@ -26,6 +26,7 @@ from methods.baselinetrain import BaselineTrain
 import wrn_mixup_model
 from io_utils import model_dict, parse_args, get_resume_file ,get_assigned_file
 
+params = parse_args('train')
 os.environ['CUDA_VISIBLE_DEVICES'] = str(params.gpu)
 use_gpu = torch.cuda.is_available()
 
@@ -226,6 +227,7 @@ def train_rotation(base_loader, base_loader_test, model, start_epoch, stop_epoch
 if __name__ == '__main__':
     # params is also defined above
     params = parse_args('train')
+    print(params)
     params.dataset = 'cifar'
     image_size = 32
 
