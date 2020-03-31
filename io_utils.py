@@ -23,6 +23,7 @@ model_dict = dict(
 
 def parse_args(script):
     parser = argparse.ArgumentParser(description= 'few-shot script %s' %(script))
+    parser.add_argument('--gpu'         , default=0, type=int,  help='gpu number')
     parser.add_argument('--dataset'     , default='cifar',        help='CUB/miniImagenet/cross/cifar')
     parser.add_argument('--model'       , default='WideResNet28_10',      help='model:  WideResNet28_10 /Conv{4|6} /ResNet{10|18|34|50|101}') # 50 and 101 are not used in the paper
     parser.add_argument('--method'      , default='S2M2_R',   help='rotation/manifold_mixup/S2M2_R') #relationnet_softmax replace L2 norm with softmax to expedite training, maml_approx use first-order approximation in the gradient for efficiency
@@ -53,7 +54,7 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
-    return parser.parse_args()
+    return parser.parse_args('--method rotation'.split())
 
 
 def get_assigned_file(checkpoint_dir,num):
