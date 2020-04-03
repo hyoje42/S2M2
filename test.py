@@ -51,6 +51,7 @@ def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 
 
 if __name__ == '__main__':
     params = parse_args('test')
+    print(params)
 
     acc_all = []
 
@@ -75,8 +76,7 @@ if __name__ == '__main__':
         split_str = split + "_" +str(params.save_iter)
     else:
         split_str = split
-
-    novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features"), split_str +".hdf5") 
+    novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5") 
     cl_data_file = feat_loader.init_loader(novel_file)
         
     acc_all1, acc_all2 , acc_all3 = [],[],[]

@@ -1,7 +1,9 @@
-Datasets/
+
 */__pycache__/*
 __pycache__/*
+*.pyc
+Datasets/
 checkpoints/
 filelists/
 features/
-*.pyc
+*.ipynb

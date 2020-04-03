@@ -1,3 +1,8 @@
 {
-    "python.pythonPath": "/home/hyoje/.conda/envs/torch101/bin/python"
+    "python.pythonPath": "/home/hyoje/.conda/envs/torch101/bin/python",
+    "files.watcherExclude": {
+	                            "**": true
+
+    }
+
 }

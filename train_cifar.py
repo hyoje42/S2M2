@@ -102,9 +102,6 @@ def train_manifold_mixup(base_loader, base_loader_test, model, start_epoch, stop
         
     return model 
 
-
-
-
 def train_rotation(base_loader, base_loader_test, model, start_epoch, stop_epoch, params , tmp):
     rotate_classifier = nn.Sequential( nn.Linear(640,4)) 
     if use_gpu:
@@ -280,10 +277,10 @@ if __name__ == '__main__':
 
             for i, key in enumerate(state_keys):
                 if "feature." in key:
-                    newkey = key.replace("feature.","")  # an architecture model has attribute 'feature', load architecture feature to backbone by casting name from 'feature.trunk.xx' to 'trunk.xx'  
+                    newkey = key.replace("module.feature.","")  # an architecture model has attribute 'feature', load architecture feature to backbone by casting name from 'feature.trunk.xx' to 'trunk.xx'  
                     state[newkey] = state.pop(key)
                 else:
-                    state[key.replace("classifier.","linear.")] =  state[key]
+                    state[key.replace("module.classifier.","linear.")] =  state[key]
                     state.pop(key)
 
             
