@@ -243,7 +243,7 @@ if __name__ == '__main__':
     if params.method == 'manifold_mixup':
         model = wrn_mixup_model.wrn28_10(64)
     elif params.method == 'S2M2_R':
-        model = wrn_mixup_model.wrn28_10(64)
+        model = wrn_mixup_model.wrn28_10(200)
     elif params.method == 'rotation':
         model = BaselineTrain( model_dict[params.model], 64, loss_type = 'dist')
  

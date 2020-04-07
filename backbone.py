@@ -33,6 +33,7 @@ class distLinear(nn.Module):
             self.scale_factor = 10; #in omniglot, a larger scale factor is required to handle >1000 output classes.
 
     def forward(self, x):
+        # x_norm:(2975) -> (2975*640) 같은 값 복사
         x_norm = torch.norm(x, p=2, dim =1).unsqueeze(1).expand_as(x)
         x_normalized = x.div(x_norm+ 0.00001)
         if not self.class_wise_learnable_norm:

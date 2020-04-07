@@ -54,8 +54,9 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
-    return parser.parse_args('--method rotation --dataset miniImagenet'.split())
+    return parser.parse_args('--dataset CUB --method rotation'.split())
     # return parser.parse_args()
+    # return parser.parse_known_args()[0]
 
 
 def get_assigned_file(checkpoint_dir,num):

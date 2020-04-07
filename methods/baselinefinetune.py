@@ -15,6 +15,10 @@ class BaselineFinetune(MetaTemplate):
         return self.set_forward_adaptation(x,is_feature); #Baseline always do adaptation
  
     def set_forward_adaptation(self,x,is_feature = True):
+        """
+        z_support : (Ns*C): (25*640)
+        z_query : (Nq*C): (2975*640)
+        """
         assert is_feature == True, 'Baseline only support testing with feature'
         z_support, z_query  = self.parse_feature(x,is_feature)
 
