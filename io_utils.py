@@ -38,14 +38,17 @@ def parse_args(script):
         parser.add_argument('--start_epoch' , default=0, type=int,help ='Starting epoch')
         parser.add_argument('--stop_epoch'  , default=400, type=int, help ='Stopping epoch') #for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
         parser.add_argument('--resume'      , action='store_true', help='continue from previous trained model with largest epoch')
-        parser.add_argument('--lr'          , default=0.001, type=int, help='learning rate') 
+        parser.add_argument('--lr'          , default=0.001, type=float, help='learning rate') 
         parser.add_argument('--batch_size' , default=16, type=int, help='batch size ')
         parser.add_argument('--test_batch_size' , default=2, type=int, help='batch size ')
         parser.add_argument('--alpha'       , default=2.0, type=int, help='for manifold_mixup or S2M2 training ')
         parser.add_argument('--warmup'      , action='store_true', help='continue from baseline, neglected if resume is true') #never used in the paper
+        parser.add_argument('-t','--temperature', default=128, type=float, help='temperature')
+        parser.add_argument('--opt', default='Adam', help='Adam or SGD with momentum')
     elif script == 'save_features':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='save feature from the model trained in x epoch, use the best model if x is -1')
+        parser.add_argument('--save_from_meta', action='store_true', help='model trained by meta learning')
     elif script == 'test':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='saved feature from the model trained in x epoch, use the best model if x is -1')
@@ -54,7 +57,7 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
-    return parser.parse_args('--dataset CUB --method rotation'.split())
+    return parser.parse_args('--dataset cifar --method S2M2_R'.split())
     # return parser.parse_args()
     # return parser.parse_known_args()[0]
 

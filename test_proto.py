@@ -75,13 +75,13 @@ if __name__ == '__main__':
 
     checkpoint_dir = '%s/checkpoints/%s/%s_%s' %(configs.save_dir, params.dataset, params.model, params.method)
 
-
     split = params.split
     if params.save_iter != -1:
         split_str = split + "_" +str(params.save_iter)
     else:
         split_str = split
-    novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5") 
+    # novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5")
+    novel_file = './features/cifar/ProtoNet_from_S2M2_R_SGD_lr0.0001/novel.hdf5'
     cl_data_file = feat_loader.init_loader(novel_file)
         
     acc_all1, acc_all2 , acc_all3 = [],[],[]
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         n_query = 15
     else:
         n_query = 600 - params.n_shot
-
+    
     print(novel_file)
     print("evaluating over %d examples"%(n_query))
 
@@ -102,20 +102,20 @@ if __name__ == '__main__':
         acc_all1.append(acc[0])
         # acc_all2.append(acc[1])
         # acc_all3.append(acc[2])
-        # print("%d steps reached and the mean acc is %g , %g , %g"%(i, np.mean(np.array(acc_all1)),np.mean(np.array(acc_all2)),np.mean(np.array(acc_all3)) ))
-#         acc_all  = np.asarray(acc_all)
+        print("%d steps reached and the mean acc is %g , %g , %g"%(i, np.mean(np.array(acc_all1)),np.mean(np.array(acc_all2)),np.mean(np.array(acc_all3)) ))
+        acc_all  = np.asarray(acc_all)
     print()
     acc_mean1 = np.mean(acc_all1)
     # acc_mean2 = np.mean(acc_all2)
     # acc_mean3 = np.mean(acc_all3)
-    # acc_std1  = np.std(acc_all1)
+    acc_std1  = np.std(acc_all1)
     # acc_std2  = np.std(acc_all2)
     # acc_std3  = np.std(acc_all3)
     print(acc_mean1)
-    # f = open(f'results/{params.dataset}_{params.method}_log.txt', 'w')
-    # print(params, file=f)
-    # print(checkpoint_dir, file=f)
-    # print('%d Test Acc at 100= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean1, 1.96* acc_std1/np.sqrt(iter_num)), file=f)
+    f = open(f'results/{params.dataset}_{params.method}_meta_learning_log.txt', 'w')
+    print(params, file=f)
+    print(checkpoint_dir, file=f)
+    print('%d Test Acc at 100= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean1, 1.96* acc_std1/np.sqrt(iter_num)), file=f)
     # print('%d Test Acc at 200= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean2, 1.96* acc_std2/np.sqrt(iter_num)), file=f)
     # print('%d Test Acc at 300= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean3, 1.96* acc_std3/np.sqrt(iter_num)), file=f)
-    # f.close()
+    f.close()

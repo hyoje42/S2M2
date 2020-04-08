@@ -73,13 +73,17 @@ if __name__ == '__main__':
         modelfile   = get_assigned_file(checkpoint_dir,params.save_iter)
     else:
         modelfile   = get_resume_file(checkpoint_dir)
+
+    if params.save_from_meta:
+        checkpoint_dir = './checkpoints/cifar/ProtoNet_from_S2M2_R_SGD_lr0.0001'
+        modelfile = './checkpoints/cifar/ProtoNet_from_S2M2_R_SGD_lr0.0001/best_model.tar'
     
     if params.save_iter != -1:
         outfile = os.path.join( checkpoint_dir.replace("checkpoints","features"), split + "_" + str(params.save_iter)+ ".hdf5") 
     else:
         outfile = os.path.join( checkpoint_dir.replace("checkpoints","features"), split + ".hdf5") 
 
-    datamgr         = SimpleDataManager(image_size, batch_size = 3)
+    datamgr         = SimpleDataManager(image_size, batch_size = 64)
     data_loader      = datamgr.get_data_loader(loadfile, aug = False)
 
     if params.method == 'manifold_mixup':
@@ -111,9 +115,18 @@ if __name__ == '__main__':
         if callwrap:
             model = WrappedModel(model) 
 
-        model_dict_load = model.state_dict()
-        model_dict_load.update(state)
-        model.load_state_dict(model_dict_load)
+        if params.save_from_meta:
+            for key in list(state.keys()):
+                if 'linear' in key:
+                    state.pop(key)
+                else:
+                    newkey = key.replace('feature.', '')
+                    state[newkey] = state.pop(key)
+            model.load_state_dict(state, strict=False)
+        else:
+            model_dict_load = model.state_dict()
+            model_dict_load.update(state)
+            model.load_state_dict(model_dict_load)
     
     else:
         if torch.cuda.is_available():
@@ -135,11 +148,6 @@ if __name__ == '__main__':
             model = WrappedModel(model) 
         model.load_state_dict(state)   
 
-
-
-
-
-   
     model.eval()
 
     dirname = os.path.dirname(outfile)
