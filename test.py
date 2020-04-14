@@ -78,7 +78,9 @@ if __name__ == '__main__':
         split_str = split + "_" +str(params.save_iter)
     else:
         split_str = split
-    novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5") 
+    novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5")
+    if params.save_by_others is not None: 
+        novel_file = os.path.split(params.save_by_others)[0] + '/novel.hdf5'
     cl_data_file = feat_loader.init_loader(novel_file)
         
     acc_all1, acc_all2 , acc_all3 = [],[],[]
@@ -87,7 +89,6 @@ if __name__ == '__main__':
         n_query = 15
     else:
         n_query = 600 - params.n_shot
-
     print(novel_file)
     print("evaluating over %d examples"%(n_query))
 
@@ -105,9 +106,14 @@ if __name__ == '__main__':
     acc_std1  = np.std(acc_all1)
     acc_std2  = np.std(acc_all2)
     acc_std3  = np.std(acc_all3)
-    f = open(f'results/{params.dataset}_{params.method}_log.txt', 'w')
+    
+    if params.method == 'moco':
+        filename = f'results/{params.dataset}_{params.method}_k'+ os.path.dirname(novel_file.split('k')[-1]) + '_log.txt'
+    else:
+        filename = f'results/{params.dataset}_{params.method}_log.txt'
+    f = open(filename, 'w')
     print(params, file=f)
-    print(checkpoint_dir, file=f)
+    print(novel_file, file=f)
     print('%d Test Acc at 100= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean1, 1.96* acc_std1/np.sqrt(iter_num)), file=f)
     print('%d Test Acc at 200= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean2, 1.96* acc_std2/np.sqrt(iter_num)), file=f)
     print('%d Test Acc at 300= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean3, 1.96* acc_std3/np.sqrt(iter_num)), file=f)

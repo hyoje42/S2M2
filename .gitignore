@@ -6,4 +6,11 @@ Datasets/
 checkpoints/
 filelists/
 features/
+results/
 *.ipynb
+*.sh
+Datasets
+.vscode/.ropeproject/config.py
+.vscode/.ropeproject/objectdb
+.vscode/settings.json
+.vscode/settings.json

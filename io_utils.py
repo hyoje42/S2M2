@@ -17,6 +17,7 @@ model_dict = dict(
             ResNet10 = backbone.ResNet10,
             ResNet18 = backbone.ResNet18,
             ResNet34 = backbone.ResNet34,
+            resnet34 = backbone.ResNet34,
             ResNet50 = backbone.ResNet50,
             ResNet101 = backbone.ResNet101,
             WideResNet28_10 = backbone.WideResNet28_10) 
@@ -31,7 +32,8 @@ def parse_args(script):
     parser.add_argument('--test_n_way'  , default=5, type=int,  help='class num to classify for testing (validation) ') #baseline and baseline++ only use this parameter in finetuning
     parser.add_argument('--n_shot'      , default=5, type=int,  help='number of labeled data in each class, same as n_support') #baseline and baseline++ only use this parameter in finetuning
     parser.add_argument('--train_aug'   , action='store_true',  help='perform data augmentation or not during training ') #still required for save_features.py and test.py to find the model path correctly
-
+    # additional
+    parser.add_argument('--save_by_others', default=None, help='model trained by other method')
     if script == 'train':
         parser.add_argument('--num_classes' , default=200, type=int, help='total number of classes in softmax, only used in baseline') #make it larger than the maximum label value in base class
         parser.add_argument('--save_freq'   , default=10, type=int, help='Save frequency')
@@ -48,7 +50,6 @@ def parse_args(script):
     elif script == 'save_features':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='save feature from the model trained in x epoch, use the best model if x is -1')
-        parser.add_argument('--save_from_meta', action='store_true', help='model trained by meta learning')
     elif script == 'test':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='saved feature from the model trained in x epoch, use the best model if x is -1')
@@ -57,8 +58,11 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
-    return parser.parse_args('--dataset cifar --method S2M2_R'.split())
-    # return parser.parse_args()
+    # return parser.parse_args('--dataset miniImagenet --model ResNet34'.split())
+    ### for moco
+    # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method moco 
+    #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar""".split())
+    return parser.parse_args()
     # return parser.parse_known_args()[0]
 
 

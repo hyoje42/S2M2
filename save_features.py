@@ -18,6 +18,10 @@ from io_utils import model_dict, parse_args, get_resume_file, get_best_file, get
 import wrn_mixup_model
 import torch.nn as nn
 
+# additional
+from moco import MoCo
+import torchvision.models as models
+
 class WrappedModel(nn.Module):
     def __init__(self, module):
         super(WrappedModel, self).__init__()
@@ -32,22 +36,23 @@ def save_features(model, data_loader, outfile ,params ):
     all_labels = f.create_dataset('all_labels',(max_count,), dtype='i')
     all_feats=None
     count=0
-    for i, (x,y) in enumerate(data_loader):
-        if i%10 == 0:
-            print('{:d}/{:d}'.format(i, len(data_loader)))
+    with torch.no_grad():
+        for i, (x,y) in enumerate(data_loader):
+            if i%10 == 0:
+                print('{:d}/{:d}'.format(i, len(data_loader)))
 
-        if torch.cuda.is_available():
-            x = x.cuda()
-        x_var = Variable(x)
-        if params.method == 'manifold_mixup' or params.method == 'S2M2_R':
-            feats,_ = model(x_var)
-        else:
-            feats = model(x_var)
-        if all_feats is None:
-            all_feats = f.create_dataset('all_feats', [max_count] + list( feats.size()[1:]) , dtype='f')
-        all_feats[count:count+feats.size(0)] = feats.data.cpu().numpy()
-        all_labels[count:count+feats.size(0)] = y.cpu().numpy()
-        count = count + feats.size(0)
+            if torch.cuda.is_available():
+                x = x.cuda()
+            x_var = Variable(x)
+            if params.method == 'manifold_mixup' or params.method == 'S2M2_R':
+                feats,_ = model(x_var)
+            else:
+                feats = model(x_var)
+            if all_feats is None:
+                all_feats = f.create_dataset('all_feats', [max_count] + list( feats.size()[1:]) , dtype='f')
+            all_feats[count:count+feats.size(0)] = feats.data.cpu().numpy()
+            all_labels[count:count+feats.size(0)] = y.cpu().numpy()
+            count = count + feats.size(0)
 
     count_var = f.create_dataset('count', (1,), dtype='i')
     count_var[0] = count
@@ -74,9 +79,9 @@ if __name__ == '__main__':
     else:
         modelfile   = get_resume_file(checkpoint_dir)
 
-    if params.save_from_meta:
-        checkpoint_dir = './checkpoints/cifar/ProtoNet_from_S2M2_R_SGD_lr0.0001'
-        modelfile = './checkpoints/cifar/ProtoNet_from_S2M2_R_SGD_lr0.0001/best_model.tar'
+    if params.save_by_others is not None:
+        checkpoint_dir = os.path.split(params.save_by_others)[0]
+        modelfile = params.save_by_others
     
     if params.save_iter != -1:
         outfile = os.path.join( checkpoint_dir.replace("checkpoints","features"), split + "_" + str(params.save_iter)+ ".hdf5") 
@@ -96,6 +101,8 @@ if __name__ == '__main__':
             model = wrn_mixup_model.wrn28_10(64 , loss_type = 'softmax')
         else:
             model = wrn_mixup_model.wrn28_10(200)
+    elif params.method == 'moco':
+        model = MoCo(models.__dict__[params.model], 128, 65536)
     else:
         model = model_dict[params.model]()
 
@@ -115,7 +122,7 @@ if __name__ == '__main__':
         if callwrap:
             model = WrappedModel(model) 
 
-        if params.save_from_meta:
+        if params.save_by_others:
             for key in list(state.keys()):
                 if 'linear' in key:
                     state.pop(key)
@@ -127,7 +134,27 @@ if __name__ == '__main__':
             model_dict_load = model.state_dict()
             model_dict_load.update(state)
             model.load_state_dict(model_dict_load)
-    
+    elif params.method == 'moco':
+        if torch.cuda.is_available():
+            model.cuda()
+        tmp = torch.load(modelfile)
+        state = tmp['state_dict']
+        for key in list(state.keys()):
+            if 'module.' in key:
+                newkey = key.replace('module.', '')
+                state[newkey] = state.pop(key)
+            else:
+                print(key)
+        model.load_state_dict(state, strict=False)
+        class ResNetBottom(nn.Module):
+            def __init__(self, original_model):
+                super(ResNetBottom, self).__init__()
+                self.features = nn.Sequential(*list(original_model.children())[:-1])
+            def forward(self, x):
+                x = self.features(x)
+                x = torch.squeeze(x)
+                return x
+        model = ResNetBottom(model.encoder_q)
     else:
         if torch.cuda.is_available():
             model = model.cuda()
