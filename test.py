@@ -111,6 +111,7 @@ if __name__ == '__main__':
         filename = f'results/{params.dataset}_{params.method}_k'+ os.path.dirname(novel_file.split('k')[-1]) + '_log.txt'
     else:
         filename = f'results/{params.dataset}_{params.method}_log.txt'
+    print(f'Save as {filename}')
     f = open(filename, 'w')
     print(params, file=f)
     print(novel_file, file=f)

@@ -176,3 +176,13 @@ def concat_all_gather(tensor):
 
     output = torch.cat(tensors_gather, dim=0)
     return output
+
+class ResNetBottom(nn.Module):
+            def __init__(self, original_model):
+                super(ResNetBottom, self).__init__()
+                self.features = nn.Sequential(*list(original_model.children())[:-1])
+                self.final_feat_dim = 512
+            def forward(self, x):
+                x = self.features(x)
+                x = torch.squeeze(x)
+                return x    
