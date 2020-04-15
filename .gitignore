@@ -9,8 +9,7 @@ features/
 results/
 *.ipynb
 *.sh
+*.json
+.vscode
 Datasets
-.vscode/.ropeproject/config.py
-.vscode/.ropeproject/objectdb
-.vscode/settings.json
-.vscode/settings.json
+checkpoints

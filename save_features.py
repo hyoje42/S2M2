@@ -19,7 +19,7 @@ import wrn_mixup_model
 import torch.nn as nn
 
 # additional
-from moco import MoCo
+import moco
 import torchvision.models as models
 
 class WrappedModel(nn.Module):
@@ -102,7 +102,10 @@ if __name__ == '__main__':
         else:
             model = wrn_mixup_model.wrn28_10(200)
     elif params.method == 'moco':
-        model = MoCo(models.__dict__[params.model], 128, 65536)
+        model = moco.MoCo(models.__dict__[params.model], 128, 16384)
+    elif params.method == 'moco_finetune':
+        model = moco.MoCo(models.__dict__[params.model], 128, 16384)
+        model = moco.ResNetBottom(model.encoder_q)
     else:
         model = model_dict[params.model]()
 
@@ -146,15 +149,22 @@ if __name__ == '__main__':
             else:
                 print(key)
         model.load_state_dict(state, strict=False)
-        class ResNetBottom(nn.Module):
-            def __init__(self, original_model):
-                super(ResNetBottom, self).__init__()
-                self.features = nn.Sequential(*list(original_model.children())[:-1])
-            def forward(self, x):
-                x = self.features(x)
-                x = torch.squeeze(x)
-                return x
-        model = ResNetBottom(model.encoder_q)
+        # get bottom of ResNet
+        model = moco.ResNetBottom(model.encoder_q)
+    elif params.method == 'moco_finetune':
+        if torch.cuda.is_available():
+            model.cuda()
+        tmp = torch.load(modelfile)
+        state = tmp['state']
+        for key in list(state.keys()):
+            if 'feature.' in key:
+                newkey = key.replace('feature.', '')
+                state[newkey] = state.pop(key)
+            else:
+                print(key)
+        model.load_state_dict(state, strict=False)
+        # get bottom of ResNet
+        # model = moco.ResNetBottom(model.encoder_q)
     else:
         if torch.cuda.is_available():
             model = model.cuda()

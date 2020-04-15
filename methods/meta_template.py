@@ -75,13 +75,14 @@ class MetaTemplate(nn.Module):
         count = 0
         acc_all = []
         
-        iter_num = len(test_loader) 
-        for i, (x,_) in enumerate(test_loader):
-            self.n_query = x.size(1) - self.n_support
-            if self.change_way:
-                self.n_way  = x.size(0)
-            correct_this, count_this = self.correct(x)
-            acc_all.append(correct_this/ count_this*100  )
+        iter_num = len(test_loader)
+        with torch.no_grad():
+            for i, (x,_) in enumerate(test_loader):
+                self.n_query = x.size(1) - self.n_support
+                if self.change_way:
+                    self.n_way  = x.size(0)
+                correct_this, count_this = self.correct(x)
+                acc_all.append(correct_this/ count_this*100  )
 
         acc_all  = np.asarray(acc_all)
         acc_mean = np.mean(acc_all)
