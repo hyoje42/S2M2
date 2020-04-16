@@ -22,6 +22,8 @@ from methods.relationnet import RelationNet
 from methods.maml import MAML
 from io_utils import model_dict, parse_args, get_resume_file, get_best_file , get_assigned_file
 
+import os.path as osp
+
 def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 15, adaptation = False):
     class_list = cl_data_file.keys()
 
@@ -60,10 +62,10 @@ if __name__ == '__main__':
         iter_num = 600
     else:
         iter_num = 10000
-    iter_num = 100
+    iter_num = 1000
+    print(f'The number of epiosdes : {iter_num}')
 
     few_shot_params = dict(n_way = params.test_n_way , n_support = params.n_shot) 
-
 
     model = BaselineFinetune( model_dict[params.model], **few_shot_params )
 
@@ -72,15 +74,14 @@ if __name__ == '__main__':
 
     checkpoint_dir = '%s/checkpoints/%s/%s_%s' %(configs.save_dir, params.dataset, params.model, params.method)
 
-
     split = params.split
     if params.save_iter != -1:
         split_str = split + "_" +str(params.save_iter)
     else:
         split_str = split
-    novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5")
+    novel_file = osp.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5")
     if params.save_by_others is not None: 
-        novel_file = os.path.split(params.save_by_others)[0] + '/novel.hdf5'
+        novel_file = '_'.join(osp.split(params.save_by_others)).replace('checkpoints', 'features') + '/novel.hdf5'
     cl_data_file = feat_loader.init_loader(novel_file)
         
     acc_all1, acc_all2 , acc_all3 = [],[],[]
@@ -107,14 +108,15 @@ if __name__ == '__main__':
     acc_std2  = np.std(acc_all2)
     acc_std3  = np.std(acc_all3)
     
-    if params.method == 'moco':
-        filename = f'results/{params.dataset}_{params.method}_k'+ os.path.dirname(novel_file.split('k')[-1]) + '_log.txt'
+    if 'moco' in params.method:
+        filename = f'results/(baseline)' + osp.dirname(novel_file).split('/')[-1] + '_log.txt'
     else:
         filename = f'results/{params.dataset}_{params.method}_log.txt'
     print(f'Save as {filename}')
     f = open(filename, 'w')
     print(params, file=f)
     print(novel_file, file=f)
+    print(f'The number of episodes : {iter_num}', file=f)
     print('%d Test Acc at 100= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean1, 1.96* acc_std1/np.sqrt(iter_num)), file=f)
     print('%d Test Acc at 200= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean2, 1.96* acc_std2/np.sqrt(iter_num)), file=f)
     print('%d Test Acc at 300= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean3, 1.96* acc_std3/np.sqrt(iter_num)), file=f)

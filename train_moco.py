@@ -21,7 +21,6 @@ import torchvision.models as models
 params = parse_args('train')
 os.environ['CUDA_VISIBLE_DEVICES'] = str(params.gpu)
 use_gpu = torch.cuda.is_available()
-image_size = 80
 
 def train(base_loader, val_loader, model, optimization, start_epoch, stop_epoch, params):    
     if optimization == 'Adam':
@@ -36,7 +35,7 @@ def train(base_loader, val_loader, model, optimization, start_epoch, stop_epoch,
 
     for epoch in range(start_epoch,stop_epoch):
         model.train()
-        model.train_loop(epoch, base_loader,  optimizer ) #model are called by reference, no need to return 
+        model.train_loop(epoch, base_loader,  optimizer, lr_scheduler=lr_scheduler ) #model are called by reference, no need to return 
         model.eval()
 
         if not os.path.isdir(params.checkpoint_dir):
@@ -92,7 +91,7 @@ if __name__=='__main__':
             else:
                 params.stop_epoch = 600 #default
     
-    model_moco = moco.MoCo(models.__dict__[params.model], 128, 16384)
+    model_moco = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
     
     if params.save_by_others is not None:
         if torch.cuda.is_available():
@@ -104,15 +103,17 @@ if __name__=='__main__':
                 newkey = key.replace('module.', '')
                 state[newkey] = state.pop(key)
             else:
-                print(key)
-        model_moco.load_state_dict(state, strict=False)
+                print(f'{key} will be removed')
+                del state[key]
+        msg = model_moco.load_state_dict(state, strict=False)
+        assert len(msg.missing_keys) == 0 and len(msg.unexpected_keys) == 0, "loading model is wrong"
         # get bottom of ResNet
         encoder = moco.ResNetBottom(model_moco.encoder_q)
 
     if params.method in ['baseline', 'baseline++'] :
-        base_datamgr    = SimpleDataManager(image_size, batch_size = params.batch_size)
+        base_datamgr    = SimpleDataManager(image_size, batch_size = 64)
         base_loader     = base_datamgr.get_data_loader( base_file , aug = params.train_aug )
-        val_datamgr     = SimpleDataManager(image_size, batch_size = params.batch_size)
+        val_datamgr     = SimpleDataManager(image_size, batch_size = 256)
         val_loader      = val_datamgr.get_data_loader( val_file, aug = False)
         
         if params.method == 'baseline':
@@ -164,7 +165,8 @@ if __name__=='__main__':
 
     model.cuda()
 
-    params.checkpoint_dir = f'./checkpoints/moco/{params.method}' + dirname(params.save_by_others).split('/')[-1]
+    params.checkpoint_dir = (f'./checkpoints/moco/{params.method}_{params.opt}lr{params.lr}_' 
+                             + dirname(params.save_by_others).split('/')[-1])
     print(f'Save checkpoint at {params.checkpoint_dir}')
 
     if not os.path.isdir(params.checkpoint_dir):

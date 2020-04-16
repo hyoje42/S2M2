@@ -51,7 +51,7 @@ class MetaTemplate(nn.Module):
         top1_correct = np.sum(topk_ind[:,0] == y_query)
         return float(top1_correct), len(y_query)
 
-    def train_loop(self, epoch, train_loader, optimizer ):
+    def train_loop(self, epoch, train_loader, optimizer, lr_scheduler=None ):
         print_freq = 10
 
         avg_loss=0
@@ -63,7 +63,8 @@ class MetaTemplate(nn.Module):
             loss = self.set_forward_loss( x )
             loss.backward()
             optimizer.step()
-            # avg_loss = avg_loss+loss.data[0]
+            if lr_scheduler is not None:
+                lr_scheduler.step()
             avg_loss = avg_loss+loss.item()
 
             if i % print_freq==0:

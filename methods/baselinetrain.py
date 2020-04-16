@@ -11,7 +11,6 @@ class BaselineTrain(nn.Module):
     def __init__(self, model_func, num_class, loss_type = 'softmax'):
         super(BaselineTrain, self).__init__()
         self.feature    = model_func()
-        # self.feature    = model_func
         if loss_type == 'softmax':
             self.classifier = nn.Linear(self.feature.final_feat_dim, num_class)
             self.classifier.bias.data.fill_(0)
@@ -32,7 +31,7 @@ class BaselineTrain(nn.Module):
         y = Variable(y.cuda())
         return self.loss_fn(scores, y )
     
-    def train_loop(self, epoch, train_loader, optimizer):
+    def train_loop(self, epoch, train_loader, optimizer, lr_scheduler=None):
         print_freq = 10
         avg_loss=0
 
@@ -41,6 +40,8 @@ class BaselineTrain(nn.Module):
             loss = self.forward_loss(x, y)
             loss.backward()
             optimizer.step()
+            if lr_scheduler is not None:
+                lr_scheduler.step()
 
             avg_loss = avg_loss+loss.item()
 

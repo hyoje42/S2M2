@@ -19,6 +19,7 @@ model_dict = dict(
             ResNet34 = backbone.ResNet34,
             resnet34 = backbone.ResNet34,
             ResNet50 = backbone.ResNet50,
+            resnet50 = backbone.ResNet50,
             ResNet101 = backbone.ResNet101,
             WideResNet28_10 = backbone.WideResNet28_10) 
 
@@ -60,14 +61,16 @@ def parse_args(script):
 
     # return parser.parse_args('--dataset miniImagenet --model ResNet34'.split())
     ### for moco
-    # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method moco_baseline 
-    #                             --save_by_others /data/Checkpoints/fewshot/S2M2/moco/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/10.tar""".split())
+    # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method moco
+    #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
+    #                             --adaptation
+    #                             """.split())
     ### train for moco
     # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method protonet
-    #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar""".split())                                 
+    #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
+    #                             --lr 0.0001 --opt SGD
+    #                         """.split())                                 
     return parser.parse_args()
-    # return parser.parse_known_args()[0]
-
 
 def get_assigned_file(checkpoint_dir,num):
     assign_file = os.path.join(checkpoint_dir, '{:d}.tar'.format(num))
