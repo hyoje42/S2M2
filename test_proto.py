@@ -22,7 +22,7 @@ from methods.relationnet import RelationNet
 from methods.maml import MAML
 from io_utils import model_dict, parse_args, get_resume_file, get_best_file , get_assigned_file
 
-import progressbar
+import os.path as osp
 
 def feature_evaluation(cl_data_file, model, n_way = 5, n_support = 5, n_query = 15, adaptation = False):
     class_list = cl_data_file.keys()
@@ -62,12 +62,11 @@ if __name__ == '__main__':
         iter_num = 600
     else:
         iter_num = 10000
-    iter_num = 100
+    iter_num = 1000
+    print(f'The number of epiosdes : {iter_num}')
 
     few_shot_params = dict(n_way = params.test_n_way , n_support = params.n_shot) 
 
-
-    # model = BaselineFinetune( model_dict[params.model], **few_shot_params )
     model = ProtoNet( model_dict[params.model], **few_shot_params )
 
     if torch.cuda.is_available():
@@ -80,8 +79,9 @@ if __name__ == '__main__':
         split_str = split + "_" +str(params.save_iter)
     else:
         split_str = split
-    # novel_file = os.path.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5")
-    novel_file = './features/cifar/ProtoNet_from_S2M2_R_SGD_lr0.0001/novel.hdf5'
+    novel_file = osp.join( checkpoint_dir.replace("checkpoints","features/S2M2"), split_str +".hdf5")
+    if params.save_by_others is not None: 
+        novel_file = '_'.join(osp.split(params.save_by_others)).replace('checkpoints', 'features') + '/novel.hdf5'
     cl_data_file = feat_loader.init_loader(novel_file)
         
     acc_all1, acc_all2 , acc_all3 = [],[],[]
@@ -90,32 +90,27 @@ if __name__ == '__main__':
         n_query = 15
     else:
         n_query = 600 - params.n_shot
-    
     print(novel_file)
     print("evaluating over %d examples"%(n_query))
 
-    bar = progressbar.ProgressBar(max_value=iter_num)
     for i in range(iter_num):
-        bar.update(i)
         acc = feature_evaluation(cl_data_file, model, n_query = n_query , adaptation = params.adaptation, **few_shot_params)
             
         acc_all1.append(acc[0])
-        # acc_all2.append(acc[1])
-        # acc_all3.append(acc[2])
-        print("%d steps reached and the mean acc is %g , %g , %g"%(i, np.mean(np.array(acc_all1)),np.mean(np.array(acc_all2)),np.mean(np.array(acc_all3)) ))
+        print("%d steps reached and the mean acc is %g"%(i, np.mean(np.array(acc_all1)) ))
         acc_all  = np.asarray(acc_all)
-    print()
     acc_mean1 = np.mean(acc_all1)
-    # acc_mean2 = np.mean(acc_all2)
-    # acc_mean3 = np.mean(acc_all3)
     acc_std1  = np.std(acc_all1)
-    # acc_std2  = np.std(acc_all2)
-    # acc_std3  = np.std(acc_all3)
-    print(acc_mean1)
-    f = open(f'results/{params.dataset}_{params.method}_meta_learning_log.txt', 'w')
+
+    if 'moco' in params.method:
+        is_adapt = {True:'(adapt)', False:''}
+        filename = f'results/(proto){is_adapt[params.adaptation]}' + osp.dirname(novel_file).split('/')[-1] + '_log.txt'
+    else:
+        filename = f'results/{params.dataset}_{params.method}_log.txt'
+    print(f'Save as {filename}')
+    f = open(filename, 'w')
     print(params, file=f)
-    print(checkpoint_dir, file=f)
+    print(novel_file, file=f)
+    print(f'The number of episodes : {iter_num}', file=f)
     print('%d Test Acc at 100= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean1, 1.96* acc_std1/np.sqrt(iter_num)), file=f)
-    # print('%d Test Acc at 200= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean2, 1.96* acc_std2/np.sqrt(iter_num)), file=f)
-    # print('%d Test Acc at 300= %4.2f%% +- %4.2f%%' %(iter_num, acc_mean3, 1.96* acc_std3/np.sqrt(iter_num)), file=f)
     f.close()

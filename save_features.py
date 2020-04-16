@@ -80,7 +80,7 @@ if __name__ == '__main__':
         modelfile   = get_resume_file(checkpoint_dir)
 
     if params.save_by_others is not None:
-        checkpoint_dir = os.path.split(params.save_by_others)[0]
+        checkpoint_dir = '_'.join(os.path.split(params.save_by_others))
         modelfile = params.save_by_others
     
     if params.save_iter != -1:
@@ -102,9 +102,10 @@ if __name__ == '__main__':
         else:
             model = wrn_mixup_model.wrn28_10(200)
     elif params.method == 'moco':
-        model = moco.MoCo(models.__dict__[params.model], 128, 16384)
+        # model = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
+        model = moco.MoCo(models.__dict__[params.model], 128, 65536)
     elif params.method == 'moco_finetune':
-        model = moco.MoCo(models.__dict__[params.model], 128, 16384)
+        model = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
         model = moco.ResNetBottom(model.encoder_q)
     else:
         model = model_dict[params.model]()
@@ -147,8 +148,9 @@ if __name__ == '__main__':
                 newkey = key.replace('module.', '')
                 state[newkey] = state.pop(key)
             else:
-                print(key)
-        model.load_state_dict(state, strict=False)
+                print(f'{key} will be removed')
+                del(state[key])
+        msg = model.load_state_dict(state, strict=False)
         # get bottom of ResNet
         model = moco.ResNetBottom(model.encoder_q)
     elif params.method == 'moco_finetune':
@@ -161,10 +163,9 @@ if __name__ == '__main__':
                 newkey = key.replace('feature.', '')
                 state[newkey] = state.pop(key)
             else:
-                print(key)
-        model.load_state_dict(state, strict=False)
-        # get bottom of ResNet
-        # model = moco.ResNetBottom(model.encoder_q)
+                print(f'{key} will be removed')
+                del(state[key])
+        msg = model.load_state_dict(state)
     else:
         if torch.cuda.is_available():
             model = model.cuda()
