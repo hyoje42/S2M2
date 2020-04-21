@@ -29,30 +29,29 @@ class WrappedModel(nn.Module):
     def forward(self, x):
         return self.module(x)
 
-
+@ torch.no_grad()
 def save_features(model, data_loader, outfile ,params ):
     f = h5py.File(outfile, 'w')
     max_count = len(data_loader)*data_loader.batch_size
     all_labels = f.create_dataset('all_labels',(max_count,), dtype='i')
     all_feats=None
     count=0
-    with torch.no_grad():
-        for i, (x,y) in enumerate(data_loader):
-            if i%10 == 0:
-                print('{:d}/{:d}'.format(i, len(data_loader)))
+    for i, (x,y) in enumerate(data_loader):
+        if i%10 == 0:
+            print('{:d}/{:d}'.format(i, len(data_loader)))
 
-            if torch.cuda.is_available():
-                x = x.cuda()
-            x_var = Variable(x)
-            if params.method == 'manifold_mixup' or params.method == 'S2M2_R':
-                feats,_ = model(x_var)
-            else:
-                feats = model(x_var)
-            if all_feats is None:
-                all_feats = f.create_dataset('all_feats', [max_count] + list( feats.size()[1:]) , dtype='f')
-            all_feats[count:count+feats.size(0)] = feats.data.cpu().numpy()
-            all_labels[count:count+feats.size(0)] = y.cpu().numpy()
-            count = count + feats.size(0)
+        if torch.cuda.is_available():
+            x = x.cuda()
+        x_var = Variable(x)
+        if params.method == 'manifold_mixup' or params.method == 'S2M2_R':
+            feats,_ = model(x_var)
+        else:
+            feats = model(x_var)
+        if all_feats is None:
+            all_feats = f.create_dataset('all_feats', [max_count] + list( feats.size()[1:]) , dtype='f')
+        all_feats[count:count+feats.size(0)] = feats.data.cpu().numpy()
+        all_labels[count:count+feats.size(0)] = y.cpu().numpy()
+        count = count + feats.size(0)
 
     count_var = f.create_dataset('count', (1,), dtype='i')
     count_var[0] = count
@@ -102,22 +101,23 @@ if __name__ == '__main__':
         else:
             model = wrn_mixup_model.wrn28_10(200)
     elif params.method == 'moco':
-        # model = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
-        model = moco.MoCo(models.__dict__[params.model], 128, 65536)
+        model = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
+        # model = moco.MoCo(models.__dict__[params.model], 128, 65536)
     elif params.method == 'moco_finetune':
         model = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
         model = moco.ResNetBottom(model.encoder_q)
     else:
         model = model_dict[params.model]()
 
-    
-
+    if params.moco:
+        model = moco.BaselineForMoCo(models.__dict__[params.model], dim=128, K=16384, mlp=True, 
+                                     num_class=200, loss_type='dist')
+    if torch.cuda.is_available():
+        model = model.cuda()
+    tmp = torch.load(modelfile)
+    state = tmp['state']
     print(checkpoint_dir , modelfile)
     if params.method == 'manifold_mixup' or params.method == 'S2M2_R':
-        if torch.cuda.is_available():
-            model = model.cuda()
-        tmp = torch.load(modelfile)
-        state = tmp['state']
         state_keys = list(state.keys())
         callwrap = False
         if 'module' in state_keys[0]:
@@ -139,10 +139,6 @@ if __name__ == '__main__':
             model_dict_load.update(state)
             model.load_state_dict(model_dict_load)
     elif params.method == 'moco':
-        if torch.cuda.is_available():
-            model.cuda()
-        tmp = torch.load(modelfile)
-        state = tmp['state_dict']
         for key in list(state.keys()):
             if 'module.' in key:
                 newkey = key.replace('module.', '')
@@ -154,10 +150,6 @@ if __name__ == '__main__':
         # get bottom of ResNet
         model = moco.ResNetBottom(model.encoder_q)
     elif params.method == 'moco_finetune':
-        if torch.cuda.is_available():
-            model.cuda()
-        tmp = torch.load(modelfile)
-        state = tmp['state']
         for key in list(state.keys()):
             if 'feature.' in key:
                 newkey = key.replace('feature.', '')
@@ -166,11 +158,9 @@ if __name__ == '__main__':
                 print(f'{key} will be removed')
                 del(state[key])
         msg = model.load_state_dict(state)
+    elif params.moco:
+        model.load_state_dict(state)
     else:
-        if torch.cuda.is_available():
-            model = model.cuda()
-        tmp = torch.load(modelfile)
-        state = tmp['state']
         callwrap = False
         state_keys = list(state.keys())
         for i, key in enumerate(state_keys):

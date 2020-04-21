@@ -1,8 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import torch
 import torch.nn as nn
-from torchsummary import summary
-
+import backbone
 
 class MoCo(nn.Module):
     """
@@ -26,7 +25,6 @@ class MoCo(nn.Module):
         # num_classes is the output fc dimension
         self.encoder_q = base_encoder(num_classes=dim)
         self.encoder_k = base_encoder(num_classes=dim)
-        kk = base_encoder(num_classes=dim)
         if mlp:  # hack: brute-force replacement
             dim_mlp = self.encoder_q.fc.weight.shape[1]
             self.encoder_q.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.encoder_q.fc)
@@ -186,3 +184,128 @@ class ResNetBottom(nn.Module):
                 x = self.features(x)
                 x = torch.squeeze(x)
                 return x    
+
+class BaselineForMoCo(MoCo):
+    def __init__(self, base_encoder, dim=128, K=65536, m=0.999, T=0.07, mlp=False, 
+                 num_class=200, loss_type='softmax'):
+        super(BaselineForMoCo, self).__init__(base_encoder, dim, K, m, T, mlp)
+        if loss_type == 'softmax':
+            self.classifier = nn.Linear(dim, num_class)
+            self.classifier.bias.data.fill_(0)
+        elif loss_type == 'dist': #Baseline ++
+            self.classifier = backbone.distLinear(dim, num_class)
+        self.loss_type = loss_type  #'softmax' #'dist'
+        self.num_class = num_class
+        self.loss_fn = nn.CrossEntropyLoss().cuda()
+    
+    def forward_contra_loss(self, im_q, im_k):
+        output, target = self.forward(im_q, im_k)
+        return self.loss_fn(output, target), accuracy(output, target, topk=(1, 5))
+        
+    def forward_class_loss(self, x, y):
+        feature = self.forward(x)
+        score = self.classifier(feature)
+        return self.loss_fn(score, y)
+    
+    def forward_loss(self, x_q, x_k, y):
+        return self.forward_class_loss(x_q, y), self.forward_contra_loss(x_q, x_k)
+
+    def train_loop(self, epoch, train_loader, optimizer, lr_scheduler=None):
+        print_freq = 10
+        avg_loss = 0
+        avg_cls_loss = 0
+        avg_contra_loss = 0
+        avg_accTop1 = 0
+        avg_accTop5 = 0
+        for i, (x_q, x_k, y) in enumerate(train_loader):
+            if torch.cuda.is_available():
+                x_q, x_k, y = x_q.cuda(), x_k.cuda(), y.cuda()
+            
+            cls_loss, (contra_loss, (accTop1, accTop5)) = self.forward_loss(x_q, x_k, y)
+            loss = 0.5*cls_loss + 0.5*contra_loss
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            if lr_scheduler is not None:
+                lr_scheduler.step()
+            avg_cls_loss += cls_loss.item()
+            avg_contra_loss += contra_loss.item()
+            avg_loss = avg_cls_loss + avg_contra_loss
+            avg_accTop1 += accTop1.item()
+            avg_accTop5 += accTop5.item()
+
+            if i % print_freq==0:
+                #print(optimizer.state_dict()['param_groups'][0]['lr'])
+                msg = f'Epoch {epoch+1:04d} | Batch {i:}/{len(train_loader):} | Loss {avg_loss/float(i+1):.4f}' + \
+                      f' | Class Loss {avg_cls_loss/float(i+1):.4f} | Contrast Loss {avg_contra_loss/float(i+1):.4f}' + \
+                      f' | Acc@1 {avg_accTop1/float(i+1):.2f} | Acc@5 {avg_accTop5/float(i+1):.2f}'
+                print(msg)
+        return msg
+
+    def test_loop(self, loader):
+        return -1
+    
+    def forward(self, im_q, im_k=None):
+        """
+        Input:
+            im_q: a batch of query images
+            im_k: a batch of key images
+        Output:
+            logits, targets
+        """
+        if im_k is None:
+            return self.encoder_q(im_q)
+        else:
+            # compute query features
+            q = self.encoder_q(im_q)  # queries: NxC
+            q = nn.functional.normalize(q, dim=1)
+
+            # compute key features
+            with torch.no_grad():  # no gradient to keys
+                self._momentum_update_key_encoder()  # update the key encoder
+
+                # shuffle for making use of BN
+                im_k, idx_unshuffle = self._batch_shuffle_ddp(im_k)
+
+                k = self.encoder_k(im_k)  # keys: NxC
+                k = nn.functional.normalize(k, dim=1)
+
+                # undo shuffle
+                k = self._batch_unshuffle_ddp(k, idx_unshuffle)
+
+            # compute logits
+            # Einstein sum is more intuitive
+            # positive logits: Nx1
+            l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
+            # negative logits: NxK
+            l_neg = torch.einsum('nc,ck->nk', [q, self.queue.clone().detach()])
+
+            # logits: Nx(1+K)
+            logits = torch.cat([l_pos, l_neg], dim=1)
+
+            # apply temperature
+            logits /= self.T
+
+            # labels: positive key indicators
+            labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
+
+            # dequeue and enqueue
+            self._dequeue_and_enqueue(k)
+
+            return logits, labels
+
+def accuracy(output, target, topk=(1,)):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    with torch.no_grad():
+        maxk = max(topk)
+        batch_size = target.size(0)
+
+        _, pred = output.topk(maxk, 1, True, True)
+        pred = pred.t()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+        res = []
+        for k in topk:
+            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            res.append(correct_k.mul_(100.0 / batch_size))
+        return res            

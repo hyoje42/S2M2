@@ -35,11 +35,13 @@ def parse_args(script):
     parser.add_argument('--train_aug'   , action='store_true',  help='perform data augmentation or not during training ') #still required for save_features.py and test.py to find the model path correctly
     # additional
     parser.add_argument('--save_by_others', default=None, help='model trained by other method')
+    parser.add_argument('--dist_url', default='77', type=str,
+                        help='url used to set up distributed training tcp://224.66.41.62:23456')
     if script == 'train':
         parser.add_argument('--num_classes' , default=200, type=int, help='total number of classes in softmax, only used in baseline') #make it larger than the maximum label value in base class
         parser.add_argument('--save_freq'   , default=10, type=int, help='Save frequency')
         parser.add_argument('--start_epoch' , default=0, type=int,help ='Starting epoch')
-        parser.add_argument('--stop_epoch'  , default=400, type=int, help ='Stopping epoch') #for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
+        parser.add_argument('--stop_epoch'  , default=-1, type=int, help ='Stopping epoch') #for meta-learning methods, each epoch contains 100 episodes. The default epoch number is dataset dependent. See train.py
         parser.add_argument('--resume'      , action='store_true', help='continue from previous trained model with largest epoch')
         parser.add_argument('--lr'          , default=0.001, type=float, help='learning rate') 
         parser.add_argument('--batch_size' , default=16, type=int, help='batch size ')
@@ -48,9 +50,11 @@ def parse_args(script):
         parser.add_argument('--warmup'      , action='store_true', help='continue from baseline, neglected if resume is true') #never used in the paper
         parser.add_argument('-t','--temperature', default=128, type=float, help='temperature')
         parser.add_argument('--opt', default='Adam', help='Adam or SGD with momentum')
+        parser.add_argument('--dim', default=128, type=int, help='the number of dim')
     elif script == 'save_features':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='save feature from the model trained in x epoch, use the best model if x is -1')
+        parser.add_argument('--moco', action='store_true', help ='model to train moco like S2M2')
     elif script == 'test':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='saved feature from the model trained in x epoch, use the best model if x is -1')
@@ -65,10 +69,14 @@ def parse_args(script):
     #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
     #                             --adaptation
     #                             """.split())
-    ### train for moco
+    ### train for moco_fintune
     # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method protonet
     #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
     #                             --lr 0.0001 --opt SGD
+    #                         """.split())                                 
+    ### train for moco
+    # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method baseline++
+    #                             --save_by_others checkpoints/moco/moco_baseline++_SGDlr0.03/399.tar
     #                         """.split())                                 
     return parser.parse_args()
 

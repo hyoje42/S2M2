@@ -25,6 +25,17 @@ class SimpleDataset:
     def __len__(self):
         return len(self.meta['image_names'])
 
+class SimpleDataset_ForMoCo(SimpleDataset):
+    def __init__(self, data_file, transform, target_transform=identity, moco_transform=None):
+        super(SimpleDataset_ForMoCo, self).__init__(data_file, transform, target_transform)
+        self.moco_transform = moco_transform
+
+    def __getitem__(self, i):
+        image_path = os.path.join(self.meta['image_names'][i])
+        img = Image.open(image_path).convert('RGB')
+        img_q, img_k = self.transform(img), self.moco_transform(img)
+        target = self.target_transform(self.meta['image_labels'][i])
+        return img_q, img_k, target
 
 class SetDataset:
     def __init__(self, data_file, batch_size, transform):

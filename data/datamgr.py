@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import torchvision.transforms as transforms
 import data.additional_transforms as add_transforms
-from data.dataset import SimpleDataset, SetDataset, EpisodicBatchSampler
+from data.dataset import SimpleDataset, SetDataset, EpisodicBatchSampler, SimpleDataset_ForMoCo
 from abc import abstractmethod
 
 class TransformLoader:
@@ -42,22 +42,45 @@ class TransformLoader:
         transform = transforms.Compose(transform_funcs)
         return transform
 
+class Transform_MoCo:
+    def __init__(self, image_size):
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+        self.augmentation = [
+            transforms.RandomResizedCrop(image_size, scale=(0.2, 1.)),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.ColorJitter(0.4, 0.4, 0.4, 0.4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize
+        ]
+
+    def get_composed_transform(self, aug=False):
+        return transforms.Compose(self.augmentation)
 class DataManager:
     @abstractmethod
-    def get_data_loader(self, data_file, aug):
+    def get_data_loader(self, data_file, aug, dataset_type=None):
         pass 
-
 
 class SimpleDataManager(DataManager):
     def __init__(self, image_size, batch_size):        
         super(SimpleDataManager, self).__init__()
         self.batch_size = batch_size
         self.trans_loader = TransformLoader(image_size)
+        self.trans_loader_moco = Transform_MoCo(image_size)
 
-    def get_data_loader(self, data_file, aug): #parameters that would change on train/val set
+    def get_data_loader(self, data_file, aug, dataset_type='simple'): #parameters that would change on train/val set
+        """
+        Args:
+            dataset_type: 'simple' or 'moco'
+        """
         transform = self.trans_loader.get_composed_transform(aug)
-        dataset = SimpleDataset(data_file, transform)
-        data_loader_params = dict(batch_size = self.batch_size, shuffle = True, num_workers = 0, pin_memory = True)
+        transform_moco = self.trans_loader_moco.get_composed_transform(aug)
+        if dataset_type == 'moco':
+            dataset = SimpleDataset_ForMoCo(data_file, transform, moco_transform=transform_moco)
+        else:
+            dataset = SimpleDataset(data_file, transform)
+        data_loader_params = dict(batch_size = self.batch_size, shuffle = True, num_workers = 2, pin_memory = True)
         data_loader = torch.utils.data.DataLoader(dataset, **data_loader_params)
 
         return data_loader
@@ -76,7 +99,7 @@ class SetDataManager(DataManager):
         transform = self.trans_loader.get_composed_transform(aug)
         dataset = SetDataset( data_file , self.batch_size, transform )
         sampler = EpisodicBatchSampler(len(dataset), self.n_way, self.n_eposide )  
-        data_loader_params = dict(batch_sampler = sampler,  num_workers = 0, pin_memory = True)       
+        data_loader_params = dict(batch_sampler = sampler,  num_workers = 2, pin_memory = True)       
         data_loader = torch.utils.data.DataLoader(dataset, **data_loader_params)
         return data_loader
 
