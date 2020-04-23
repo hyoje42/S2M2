@@ -63,7 +63,7 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
-    # return parser.parse_args('--dataset miniImagenet --model ResNet34 --method rotation --stop_epoch 400'.split())
+    return parser.parse_args('--dataset miniImagenet --model ResNet34 --method rotation --save_iter 50'.split())
     ### for moco
     # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method moco
     #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
