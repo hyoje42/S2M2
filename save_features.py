@@ -65,13 +65,12 @@ if __name__ == '__main__':
         image_size = 32
     else:
         image_size = 80
-
+    # image_size = 224
 
     split = params.split
     loadfile = configs.data_dir[params.dataset] + split + '.json'
 
     checkpoint_dir = '%s/checkpoints/%s/%s_%s' %(configs.save_dir, params.dataset, params.model, params.method)
-    
 
     if params.save_iter != -1:
         modelfile   = get_assigned_file(checkpoint_dir,params.save_iter)
@@ -101,16 +100,16 @@ if __name__ == '__main__':
         else:
             model = wrn_mixup_model.wrn28_10(200)
     elif params.method == 'moco':
-        model = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
+        model = moco.MoCo(models.__dict__[params.model], dim=params.dim, K=16384, mlp=True)
         # model = moco.MoCo(models.__dict__[params.model], 128, 65536)
     elif params.method == 'moco_finetune':
-        model = moco.MoCo(models.__dict__[params.model], 128, 16384, mlp=True)
+        model = moco.MoCo(models.__dict__[params.model], dim=params.dim, K=16384, mlp=True)
         model = moco.ResNetBottom(model.encoder_q)
     else:
         model = model_dict[params.model]()
 
     if params.moco:
-        model = moco.BaselineForMoCo(models.__dict__[params.model], dim=128, K=16384, mlp=True, 
+        model = moco.BaselineForMoCo(models.__dict__[params.model], dim=params.dim, K=16384, mlp=True, 
                                      num_class=200, loss_type='dist')
     if torch.cuda.is_available():
         model = model.cuda()

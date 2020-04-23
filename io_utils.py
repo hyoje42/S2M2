@@ -37,6 +37,8 @@ def parse_args(script):
     parser.add_argument('--save_by_others', default=None, help='model trained by other method')
     parser.add_argument('--dist_url', default='77', type=str,
                         help='url used to set up distributed training tcp://224.66.41.62:23456')
+    parser.add_argument('--dim', default=128, type=int, help='the number of dim')
+    parser.add_argument('--moco', action='store_true', help ='model to train moco like S2M2')
     if script == 'train':
         parser.add_argument('--num_classes' , default=200, type=int, help='total number of classes in softmax, only used in baseline') #make it larger than the maximum label value in base class
         parser.add_argument('--save_freq'   , default=10, type=int, help='Save frequency')
@@ -50,11 +52,9 @@ def parse_args(script):
         parser.add_argument('--warmup'      , action='store_true', help='continue from baseline, neglected if resume is true') #never used in the paper
         parser.add_argument('-t','--temperature', default=128, type=float, help='temperature')
         parser.add_argument('--opt', default='Adam', help='Adam or SGD with momentum')
-        parser.add_argument('--dim', default=128, type=int, help='the number of dim')
     elif script == 'save_features':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='save feature from the model trained in x epoch, use the best model if x is -1')
-        parser.add_argument('--moco', action='store_true', help ='model to train moco like S2M2')
     elif script == 'test':
         parser.add_argument('--split'       , default='novel', help='base/val/novel') #default novel, but you can also test base/val class accuracy if you want 
         parser.add_argument('--save_iter', default=-1, type=int,help ='saved feature from the model trained in x epoch, use the best model if x is -1')
@@ -63,7 +63,7 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
-    # return parser.parse_args('--dataset miniImagenet --model ResNet34'.split())
+    # return parser.parse_args('--dataset miniImagenet --model ResNet34 --method rotation --stop_epoch 400'.split())
     ### for moco
     # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method moco
     #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
