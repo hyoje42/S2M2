@@ -57,10 +57,29 @@ def parse_args(script):
        raise ValueError('Unknown script')
         
 
+<<<<<<< HEAD
     return parser.parse_args('--dataset cifar --method S2M2_R'.split())
     # return parser.parse_args()
     # return parser.parse_known_args()[0]
 
+=======
+    return parser.parse_args('--dataset miniImagenet --model ResNet34 --method rotation --save_iter 50'.split())
+    ### for moco
+    # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method moco
+    #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
+    #                             --adaptation
+    #                             """.split())
+    ### train for moco_fintune
+    # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method protonet
+    #                             --save_by_others /data/Checkpoints/fewshot/MoCo/miniImagenet_resnet34_lr0.03_b256_k16384_mlp/checkpoint_1000_Top1_93.76.pth.tar
+    #                             --lr 0.0001 --opt SGD
+    #                         """.split())                                 
+    ### train for moco
+    # return parser.parse_args("""--dataset miniImagenet --model resnet34 --method baseline++
+    #                             --save_by_others checkpoints/moco/moco_baseline++_SGDlr0.03/399.tar
+    #                         """.split())                                 
+    return parser.parse_args()
+>>>>>>> 0ec5023... update
 
 def get_assigned_file(checkpoint_dir,num):
     assign_file = os.path.join(checkpoint_dir, '{:d}.tar'.format(num))

@@ -4,6 +4,6 @@ __pycache__/*
 *.pyc
 Datasets/
 checkpoints/
-filelists/
 features/
 *.ipynb
+*.txt
