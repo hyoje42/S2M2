@@ -8,7 +8,6 @@ features/
 results/
 *.ipynb
 *.sh
-*.json
 .vscode
 Datasets
 checkpoints
