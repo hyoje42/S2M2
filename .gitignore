@@ -7,3 +7,5 @@ checkpoints/
 features/
 *.ipynb
 *.txt
+Datasets
+checkpoints
