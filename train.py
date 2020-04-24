@@ -271,7 +271,7 @@ def train_s2m2(base_loader, base_loader_test, val_loader ,model, start_epoch, st
 
 
 def train_rotation(base_loader, base_loader_test, model, start_epoch, stop_epoch, params , tmp):
-    rotate_classifier = nn.Sequential( nn.Linear(640,4)) 
+    rotate_classifier = nn.Sequential( nn.Linear(model.feature.final_feat_dim,4)) 
     if use_gpu:
         rotate_classifier.cuda()
     

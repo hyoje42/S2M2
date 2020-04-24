@@ -56,7 +56,7 @@ def parse_args(script):
     else:
        raise ValueError('Unknown script')
         
-    # return parser.parse_args('--dataset miniImagenet --method rotations'.split())
+    # return parser.parse_args('--dataset miniImagenet --method rotation --model ResNet18'.split())
     return parser.parse_args()
     # return parser.parse_known_args()[0]
 
