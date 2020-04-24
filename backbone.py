@@ -359,7 +359,8 @@ class ResNet(nn.Module):
                 indim = list_of_out_dims[i]
 
         if flatten:
-            avgpool = nn.AvgPool2d(7)
+            # avgpool = nn.AvgPool2d(7)
+            avgpool = nn.AdaptiveAvgPool2d((1, 1))
             trunk.append(avgpool)
             trunk.append(Flatten())
             self.final_feat_dim = indim

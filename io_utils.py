@@ -56,8 +56,8 @@ def parse_args(script):
     else:
        raise ValueError('Unknown script')
         
-    return parser.parse_args('--dataset cifar --method S2M2_R'.split())
-    # return parser.parse_args()
+    # return parser.parse_args('--dataset miniImagenet --method rotations'.split())
+    return parser.parse_args()
     # return parser.parse_known_args()[0]
 
 def get_assigned_file(checkpoint_dir,num):
