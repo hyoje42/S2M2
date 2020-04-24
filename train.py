@@ -392,6 +392,7 @@ if __name__ == '__main__':
     # params is also defined above
     params = parse_args('train')
     print(params)
+    torch.set_num_threads(2)
 
     base_file = configs.data_dir[params.dataset] + 'base.json'
     val_file = configs.data_dir[params.dataset] + 'val.json'

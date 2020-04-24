@@ -43,7 +43,7 @@ class SetDataset:
         self.sub_dataloader = [] 
         sub_data_loader_params = dict(batch_size = batch_size,
                                   shuffle = True,
-                                  num_workers = 0, #use main thread only or may receive multiple batches
+                                  num_workers = 2, #use main thread only or may receive multiple batches
                                   pin_memory = False)        
         for cl in self.cl_list:
             sub_dataset = SubDataset(self.sub_meta[cl], cl, transform = transform )
